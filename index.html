@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LFJC Admin | Class Lock Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .token-section {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+        }
+        
+        .token-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #fcd34d;
+            border-radius: 10px;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+        
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .lock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .lock-card {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+        
+        .lock-card.locked {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+        
+        .lock-card.unlocked {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        
+        .class-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .class-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .lock-status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+        
+        .lock-status.locked {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .lock-status.unlocked {
+            background: #10b981;
+            color: white;
+        }
+        
+        .lock-toggle {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        .lock-toggle.locked {
+            background: #10b981;
+            color: white;
+        }
+        
+        .lock-toggle.unlocked {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .admin-badge {
+            background: #4B0082;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+        
+        .upload-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+        }
+        
+        .repo-info {
+            background: #e0e7ff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .lock-grid {
+                grid-template-columns: 1fr;
+            }
+            .class-name {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 LFJC Class Lock Manager</h1>
+            <p>Control student access to class repositories | Lock = Students CANNOT access via portal</p>
+        </div>
+        
+        <!-- Token Card -->
+        <div class="card token-section">
+            <h3>🔑 GitHub Access Token</h3>
+            <p style="margin: 10px 0; color: #92400e;">Required to save lock settings to GitHub</p>
+            <input type="password" id="githubToken" class="token-input" placeholder="Enter GitHub Personal Access Token">
+            <button id="saveTokenBtn" class="btn btn-primary" style="margin-top: 15px;">💾 Save Token</button>
+            <span id="tokenStatus" style="margin-left: 15px; font-size: 0.9rem;"></span>
+            <div class="repo-info">
+                📌 Locks will be saved to: <strong>lfjccbt/lock-config/locks.json</strong><br>
+                (This repo will be created automatically)
+            </div>
+        </div>
+        
+        <!-- Lock Management Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                <h2>📚 Class Lock Status</h2>
+                <div>
+                    <button id="adminAccessBtn" class="btn btn-primary">🔓 Admin Access</button>
+                    <span id="adminBadge" class="admin-badge" style="display: none;">👑 Admin Mode</span>
+                </div>
+            </div>
+            
+            <div id="lockGridContainer">
+                <div class="loading">Loading class locks...</div>
+            </div>
+            
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+        
+        <!-- Quick Info Card -->
+        <div class="card">
+            <h3>📖 How It Works</h3>
+            <ul style="margin-top: 15px; line-height: 1.8;">
+                <li>✅ <strong>UNLOCKED</strong> = Students can access class content through the student portal</li>
+                <li>🔒 <strong>LOCKED</strong> = Student portal blocks access (shows "Class is locked" message)</li>
+                <li>🔐 Repositories stay <strong>public</strong> (GitHub Free plan), but locks control portal access</li>
+                <li>⚙️ Lock status is stored in <code>lfjccbt/lock-config/locks.json</code></li>
+                <li>👑 Admin password: <code>admin2025</code></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Admin Password Modal -->
+    <div id="adminModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: white; padding: 30px; border-radius: 20px; max-width: 400px; text-align: center;">
+            <h3>🔒 Admin Access Required</h3>
+            <input type="password" id="adminPassword" style="width: 100%; padding: 12px; margin: 20px 0; border: 2px solid #e2e8f0; border-radius: 10px;" placeholder="Enter admin password">
+            <div>
+                <button id="adminConfirmBtn" class="btn btn-primary">Verify</button>
+                <button id="adminCancelBtn" class="btn" style="background: #6c757d; color: white; margin-left: 10px;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CONFIGURATION ==========
+        const REPO_OWNER = 'lfjccbt';
+        const CONFIG_REPO = 'lock-config';
+        const CONFIG_FILE = 'locks.json';
+        const ADMIN_PASSWORD = 'admin2025';
+        
+        const CLASSES = ['1D', '1M', '1N', '1E', '2D', '2M', '2N', '2E'];
+        
+        let isAdmin = false;
+        let currentToken = localStorage.getItem('github_token') || '';
+        let classLocks = {};
+        
+        // DOM Elements
+        const tokenInput = document.getElementById('githubToken');
+        const saveTokenBtn = document.getElementById('saveTokenBtn');
+        const tokenStatus = document.getElementById('tokenStatus');
+        const adminAccessBtn = document.getElementById('adminAccessBtn');
+        const adminBadge = document.getElementById('adminBadge');
+        const adminModal = document.getElementById('adminModal');
+        const lockGridContainer = document.getElementById('lockGridContainer');
+        const statusMessageDiv = document.getElementById('statusMessage');
+        
+        // Initialize
+        if (currentToken) {
+            tokenInput.value = currentToken;
+            tokenStatus.textContent = '✓ Token loaded';
+            tokenStatus.style.color = '#10b981';
+            loadLocksFromGitHub();
+        } else {
+            lockGridContainer.innerHTML = '<div class="loading">⚠️ Please enter GitHub token first</div>';
+        }
+        
+        // Save token
+        saveTokenBtn.addEventListener('click', () => {
+            const token = tokenInput.value.trim();
+            if (token.length > 20) {
+                localStorage.setItem('github_token', token);
+                currentToken = token;
+                tokenStatus.textContent = '✓ Token saved successfully!';
+                tokenStatus.style.color = '#10b981';
+                loadLocksFromGitHub();
+                setTimeout(() => tokenStatus.textContent = '', 3000);
+            } else {
+                tokenStatus.textContent = '❌ Invalid token (needs at least 20 characters)';
+                tokenStatus.style.color = '#ef4444';
+                setTimeout(() => tokenStatus.textContent = '', 3000);
+            }
+        });
+        
+        // Admin access
+        adminAccessBtn.addEventListener('click', () => {
+            adminModal.style.display = 'flex';
+        });
+        
+        document.getElementById('adminConfirmBtn').addEventListener('click', () => {
+            const pwd = document.getElementById('adminPassword').value;
+            if (pwd === ADMIN_PASSWORD) {
+                isAdmin = true;
+                adminBadge.style.display = 'inline-block';
+                adminModal.style.display = 'none';
+                showStatus('Admin access granted! You can now modify class locks.', 'success');
+                renderLockGrid();
+            } else {
+                showStatus('❌ Incorrect password!', 'error');
+                document.getElementById('adminPassword').value = '';
+            }
+        });
+        
+        document.getElementById('adminCancelBtn').addEventListener('click', () => {
+            adminModal.style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+        });
+        
+        // Load locks from GitHub
+        async function loadLocksFromGitHub() {
+            if (!currentToken) {
+                lockGridContainer.innerHTML = '<div class="loading">⚠️ Please enter GitHub token first</div>';
+                return;
+            }
+            
+            lockGridContainer.innerHTML = '<div class="loading">🔄 Loading lock status from GitHub...</div>';
+            
+            try {
+                // First, try to get existing locks file
+                const url = `https://api.github.com/repos/${REPO_OWNER}/${CONFIG_REPO}/contents/${CONFIG_FILE}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `token ${currentToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = atob(data.content);
+                    const savedLocks = JSON.parse(content);
+                    classLocks = savedLocks;
+                } else if (response.status === 404) {
+                    // Config repo doesn't exist yet, create default locks
+                    console.log('Config file not found, creating default...');
+                    CLASSES.forEach(cls => classLocks[cls] = false);
+                    await saveLocksToGitHub(true); // Create new file
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                renderLockGrid();
+            } catch (error) {
+                console.error('Error loading locks:', error);
+                lockGridContainer.innerHTML = `<div class="loading">❌ Error loading locks: ${error.message}<br>Using local defaults</div>`;
+                // Use default local locks
+                CLASSES.forEach(cls => classLocks[cls] = false);
+                renderLockGrid();
+            }
+        }
+        
+        // Save locks to GitHub
+        async function saveLocksToGitHub(isNewFile = false) {
+            if (!currentToken) {
+                showStatus('❌ No GitHub token found!', 'error');
+                return false;
+            }
+            
+            showStatus('💾 Saving lock status to GitHub...', 'success');
+            
+            const content = btoa(unescape(encodeURIComponent(JSON.stringify(classLocks, null, 2))));
+            
+            try {
+                let sha = null;
+                
+                // Try to get existing file to get SHA
+                if (!isNewFile) {
+                    const checkUrl = `https://api.github.com/repos/${REPO_OWNER}/${CONFIG_REPO}/contents/${CONFIG_FILE}`;
+                    const checkRes = await fetch(checkUrl, {
+                        headers: { 'Authorization': `token ${currentToken}` }
+                    });
+                    if (checkRes.ok) {
+                        const data = await checkRes.json();
+                        sha = data.sha;
+                    }
+                }
+                
+                // Create or update file
+                const uploadUrl = `https://api.github.com/repos/${REPO_OWNER}/${CONFIG_REPO}/contents/${CONFIG_FILE}`;
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: isNewFile ? 'Create locks.json' : 'Update class locks',
+                        content: content,
+                        sha: sha,
+                        branch: 'main'
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Lock status saved to GitHub successfully!', 'success');
+                    return true;
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Save failed');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showStatus(`❌ Failed to save: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Toggle individual class lock
+        async function toggleLock(className) {
+            if (!isAdmin) {
+                showStatus('🔒 Admin access required to modify locks!', 'error');
+                return;
+            }
+            
+            classLocks[className] = !classLocks[className];
+            const newStatus = classLocks[className] ? 'LOCKED' : 'UNLOCKED';
+            
+            const saved = await saveLocksToGitHub();
+            if (saved) {
+                renderLockGrid();
+                showStatus(`✅ Class ${className} is now ${newSTATUS}. Students will ${classLocks[className] ? 'NOT' : ''} have access.`, 'success');
+            } else {
+                // Revert on failure
+                classLocks[className] = !classLocks[className];
+                renderLockGrid();
+            }
+        }
+        
+        // Unlock all classes
+        async function unlockAll() {
+            if (!isAdmin) {
+                showStatus('🔒 Admin access required!', 'error');
+                return;
+            }
+            
+            CLASSES.forEach(cls => classLocks[cls] = false);
+            const saved = await saveLocksToGitHub();
+            if (saved) {
+                renderLockGrid();
+                showStatus('✅ All classes have been UNLOCKED! Students can now access all classes.', 'success');
+            }
+        }
+        
+        // Lock all classes
+        async function lockAll() {
+            if (!isAdmin) {
+                showStatus('🔒 Admin access required!', 'error');
+                return;
+            }
+            
+            CLASSES.forEach(cls => classLocks[cls] = true);
+            const saved = await saveLocksToGitHub();
+            if (saved) {
+                renderLockGrid();
+                showStatus('🔒 All classes have been LOCKED! Students cannot access any classes.', 'success');
+            }
+        }
+        
+        // Render lock grid
+        function renderLockGrid() {
+            const lockedCount = Object.values(classLocks).filter(locked => locked === true).length;
+            
+            let html = `
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <strong>📊 Summary:</strong> ${lockedCount} of ${CLASSES.length} classes are LOCKED
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+            `;
+            
+            if (isAdmin) {
+                html += `
+                        <button id="unlockAllBtn" class="btn btn-success">🔓 Unlock All</button>
+                        <button id="lockAllBtn" class="btn btn-danger">🔒 Lock All</button>
+                `;
+            }
+            
+            html += `
+                    </div>
+                </div>
+                <div class="lock-grid">
+            `;
+            
+            for (const className of CLASSES) {
+                const isLocked = classLocks[className] || false;
+                html += `
+                    <div class="lock-card ${isLocked ? 'locked' : 'unlocked'}">
+                        <div class="class-header">
+                            <span class="class-name">📚 ${className}</span>
+                            <span class="lock-status ${isLocked ? 'locked' : 'unlocked'}">
+                                ${isLocked ? '🔒 LOCKED' : '🔓 UNLOCKED'}
+                            </span>
+                        </div>
+                        <div style="margin: 10px 0; font-size: 0.9rem; color: #64748b;">
+                            ${isLocked ? '🚫 Students cannot access this class' : '✅ Students can access this class'}
+                        </div>
+                `;
+                
+                if (isAdmin) {
+                    html += `
+                        <button class="lock-toggle ${isLocked ? 'locked' : 'unlocked'}" onclick="toggleLock('${className}')">
+                            ${isLocked ? '🔓 Unlock Class' : '🔒 Lock Class'}
+                        </button>
+                    `;
+                }
+                
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            lockGridContainer.innerHTML = html;
+            
+            // Attach event listeners if admin
+            if (isAdmin) {
+                const unlockAllBtn = document.getElementById('unlockAllBtn');
+                const lockAllBtn = document.getElementById('lockAllBtn');
+                if (unlockAllBtn) unlockAllBtn.onclick = () => unlockAll();
+                if (lockAllBtn) lockAllBtn.onclick = () => lockAll();
+            }
+        }
+        
+        function showStatus(message, type) {
+            statusMessageDiv.textContent = message;
+            statusMessageDiv.className = `status-message status-${type === 'success' ? 'success' : 'error'}`;
+            statusMessageDiv.style.display = 'block';
+            setTimeout(() => {
+                statusMessageDiv.style.display = 'none';
+            }, 4000);
+        }
+        
+        // Make toggleLock available globally
+        window.toggleLock = toggleLock;
+    </script>
+</body>
+</html>
