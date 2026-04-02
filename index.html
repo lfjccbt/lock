@@ -199,18 +199,20 @@
             color: #667eea;
         }
         
-        .upload-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid #e2e8f0;
-        }
-        
         .repo-info {
             background: #e0e7ff;
             padding: 10px;
             border-radius: 8px;
             font-size: 0.85rem;
             margin-top: 10px;
+        }
+        
+        .setup-steps {
+            background: #d1fae5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #10b981;
         }
         
         @media (max-width: 768px) {
@@ -227,7 +229,7 @@
     <div class="container">
         <div class="header">
             <h1>🔐 LFJC Class Lock Manager</h1>
-            <p>Control student access to class repositories | Lock = Students CANNOT access via portal</p>
+            <p>Control student access to class portals | Lock = Students CANNOT access via portal</p>
         </div>
         
         <!-- Token Card -->
@@ -237,9 +239,22 @@
             <input type="password" id="githubToken" class="token-input" placeholder="Enter GitHub Personal Access Token">
             <button id="saveTokenBtn" class="btn btn-primary" style="margin-top: 15px;">💾 Save Token</button>
             <span id="tokenStatus" style="margin-left: 15px; font-size: 0.9rem;"></span>
-            <div class="repo-info">
-                📌 Locks will be saved to: <strong>lfjccbt/lock-config/locks.json</strong><br>
-                (This repo will be created automatically)
+            
+            <div class="setup-steps">
+                <strong>📋 FIRST TIME SETUP (Do this once):</strong><br><br>
+                1️⃣ Go to <strong>https://github.com/new</strong> and create a repository called:<br>
+                &nbsp;&nbsp;&nbsp;<code style="background:white; padding:2px 6px; border-radius:4px;">lock-config</code> (make it <strong>PUBLIC</strong>)<br><br>
+                2️⃣ Create a GitHub Personal Access Token:<br>
+                &nbsp;&nbsp;&nbsp;• Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)<br>
+                &nbsp;&nbsp;&nbsp;• Generate new token with <strong>repo</strong> scope<br>
+                &nbsp;&nbsp;&nbsp;• Copy the token (it starts with ghp_...)<br><br>
+                3️⃣ Paste the token above and click "Save Token"<br><br>
+                4️⃣ Click "Admin Access" and enter password: <strong>admin2025</strong><br><br>
+                5️⃣ Start locking/unlocking classes!
+            </div>
+            
+            <div class="repo-info" style="margin-top: 15px;">
+                📌 Locks will be saved to: <strong>https://github.com/lfjccbt/lock-config/blob/main/locks.json</strong>
             </div>
         </div>
         
@@ -254,7 +269,7 @@
             </div>
             
             <div id="lockGridContainer">
-                <div class="loading">Loading class locks...</div>
+                <div class="loading">⚠️ Please enter GitHub token first</div>
             </div>
             
             <div id="statusMessage" class="status-message"></div>
@@ -346,7 +361,7 @@
                 isAdmin = true;
                 adminBadge.style.display = 'inline-block';
                 adminModal.style.display = 'none';
-                showStatus('Admin access granted! You can now modify class locks.', 'success');
+                showStatus('✅ Admin access granted! You can now modify class locks.', 'success');
                 renderLockGrid();
             } else {
                 showStatus('❌ Incorrect password!', 'error');
@@ -369,7 +384,6 @@
             lockGridContainer.innerHTML = '<div class="loading">🔄 Loading lock status from GitHub...</div>';
             
             try {
-                // First, try to get existing locks file
                 const url = `https://api.github.com/repos/${REPO_OWNER}/${CONFIG_REPO}/contents/${CONFIG_FILE}`;
                 const response = await fetch(url, {
                     headers: {
@@ -383,11 +397,16 @@
                     const content = atob(data.content);
                     const savedLocks = JSON.parse(content);
                     classLocks = savedLocks;
+                    showStatus('✅ Lock status loaded from GitHub!', 'success');
                 } else if (response.status === 404) {
-                    // Config repo doesn't exist yet, create default locks
+                    // Config file doesn't exist, create default
                     console.log('Config file not found, creating default...');
                     CLASSES.forEach(cls => classLocks[cls] = false);
-                    await saveLocksToGitHub(true); // Create new file
+                    showStatus('📝 Creating new lock config file...', 'success');
+                    const saved = await saveLocksToGitHub(true);
+                    if (!saved) {
+                        throw new Error('Failed to create config file');
+                    }
                 } else {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -395,8 +414,8 @@
                 renderLockGrid();
             } catch (error) {
                 console.error('Error loading locks:', error);
-                lockGridContainer.innerHTML = `<div class="loading">❌ Error loading locks: ${error.message}<br>Using local defaults</div>`;
-                // Use default local locks
+                lockGridContainer.innerHTML = `<div class="loading">❌ Error: ${error.message}<br><br>Make sure you:<br>1. Created the "lock-config" repository<br>2. Token has "repo" scope<br>3. Token is correct</div>`;
+                // Use default local locks for display
                 CLASSES.forEach(cls => classLocks[cls] = false);
                 renderLockGrid();
             }
@@ -471,11 +490,12 @@
             const saved = await saveLocksToGitHub();
             if (saved) {
                 renderLockGrid();
-                showStatus(`✅ Class ${className} is now ${newSTATUS}. Students will ${classLocks[className] ? 'NOT' : ''} have access.`, 'success');
+                showStatus(`✅ Class ${className} is now ${newStatus}. Students will ${classLocks[className] ? 'NOT' : ''} have access.`, 'success');
             } else {
                 // Revert on failure
                 classLocks[className] = !classLocks[className];
                 renderLockGrid();
+                showStatus(`❌ Failed to save. Class ${className} remains ${classLocks[className] ? 'LOCKED' : 'UNLOCKED'}.`, 'error');
             }
         }
         
@@ -551,7 +571,7 @@
                 
                 if (isAdmin) {
                     html += `
-                        <button class="lock-toggle ${isLocked ? 'locked' : 'unlocked'}" onclick="toggleLock('${className}')">
+                        <button class="lock-toggle ${isLocked ? 'locked' : 'unlocked'}" onclick="window.toggleLock('${className}')">
                             ${isLocked ? '🔓 Unlock Class' : '🔒 Lock Class'}
                         </button>
                     `;
