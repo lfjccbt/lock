@@ -2,9 +2,9 @@
   "1D": false,
   "1M": false,
   "1N": true,
-  "1E": true,
+  "1E": false,
   "2D": false,
   "2M": false,
-  "2N": true,
+  "2N": false,
   "2E": false
 }
