@@ -1,10 +1,10 @@
 {
-  "1D": false,
-  "1M": false,
-  "1N": false,
-  "1E": false,
-  "2D": false,
-  "2M": false,
-  "2N": false,
-  "2E": false
+  "1D": true,
+  "1M": true,
+  "1N": true,
+  "1E": true,
+  "2D": true,
+  "2M": true,
+  "2N": true,
+  "2E": true
 }
