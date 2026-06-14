@@ -1,7 +1,7 @@
 {
   "1D": true,
   "1M": true,
-  "1N": false,
+  "1N": true,
   "1E": true,
   "2D": false,
   "2M": true,
