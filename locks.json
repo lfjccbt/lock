@@ -3,8 +3,8 @@
   "1M": true,
   "1N": true,
   "1E": true,
-  "2D": false,
+  "2D": true,
   "2M": true,
-  "2N": false,
+  "2N": true,
   "2E": true
 }
